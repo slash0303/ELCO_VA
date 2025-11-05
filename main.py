@@ -18,7 +18,7 @@ from audio.audio_stream import use_audio_stream
 from VAD.voice_detection import use_vad_based_recording
 from whisper_streaming.whisper_stream import use_transcript
 from Llm.llm_send_query import use_ai_response
-from CosyVoice.generate_voice import use_generate_voice
+from voice_generation.generate_voice import use_generate_voice
 
 if __name__ == "__main__":
 
