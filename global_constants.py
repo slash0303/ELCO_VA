@@ -9,10 +9,10 @@ class audio:
     NDARRAY_DTYPE = np.int16
 
 class vad:
-    SPEECH_LIMIT = 30
+    SPEECH_LIMIT = 20
     PAUSE_LIMIT = 2
-    RECORDING_LIMIT = 60
+    RECORDING_LIMIT = 30
     MAINTAIN_LIMIT = 0.5
     
     USE_ONNX = True
-    ACTIVATE_THRESHOLD = 0.3
+    ACTIVATE_THRESHOLD = 0.6

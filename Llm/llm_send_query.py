@@ -4,15 +4,6 @@ from openai import OpenAI
 
 from eaxtension import LogE
 
-api_list = {
-    "weather": """
-    현재 날씨에 대한 정보를 제공합니다. 응답형식은 {
-        TODO: API응답 요청에 맞게 프롬프트 작성하기
-    }
-    """
-}
-
-
 def use_ai_response(transcript_complete_flag: EventObject,
                     llm_response_generating_flag: EventObject,
                     llm_response_generated_flag: EventObject):
@@ -33,11 +24,16 @@ def use_ai_response(transcript_complete_flag: EventObject,
                 # Check transcripted text is empty
                 if(user_request_text != "" and user_request_text != " "):
                     # Send resquest to local llm server
+                    sys_prompt = ""
+                    with open("./sys_prompt.txt", "r", encoding="utf-8") as f:
+                        sys_prompt = f.read()
+                    info = ""
                     response = client.chat.completions.create(
-                        model = 'lgai-exaone/exaone-4.0-1.2b',
+                        model = 'qwen/qwen3-vl-4b',
                         messages=[
-                            {"role": "system", "content": f"당신은 AI어시스턴트 스피커입니다. 당신은 사용자의 전사되어있는 음성 요청에 대한 알맞은 응답을 생성해야합니다. 응답은 구어체로 제공되어야 하며, 마크다운등의 문법을 일체 사용해서는 안됩니다. DO NOT USE MARKDOWN. 사용자의 응답을 반복해서는 안됩니다. 응답 생성 시에는 제공되는 API목록을 활용할 수 있으며, 이하의 목록은 사용 가능한 API와 이에 대한 설명입니다.{api_list}/"},
-                            {"role": "user", "content": f"이하에 제공되는 사용자의 요청에 맞는 응답을 생성하세요:\n{user_request_text}"}
+                            {"role": "system", "content": sys_prompt},
+                            {"role": "assistant", "content": "현재 서울특별시 정릉 3동의 기온은 20도이고, 날씨는 맑아요. 강수확률이 70퍼센트 정도이니 우산을 챙겨나가시는걸 추천드립니다."},
+                            {"role": "user", "content": user_request_text}
                         ],
                         temperature=0.7,
                         max_tokens=1024
