@@ -21,7 +21,8 @@ def use_audio_stream(get_audio_flag: EventObject,
                      input=True,
                      format=gc.audio.FORMAT,
                      rate=gc.audio.SAMPLING_RATE,
-                     frames_per_buffer=gc.audio.FRAMES_PER_BUFFER)
+                     frames_per_buffer=gc.audio.FRAMES_PER_BUFFER,
+                     input_device_index=0)
     
     audio_data_mem = shared_memory.SharedMemory(name=audio_data_shm_name)
     audio_data_buf = np.ndarray(gc.audio.FRAMES_PER_BUFFER, 

@@ -15,4 +15,4 @@ class vad:
     MAINTAIN_LIMIT = 0.5
     
     USE_ONNX = True
-    ACTIVATE_THRESHOLD = 0.6
+    ACTIVATE_THRESHOLD = 0.5

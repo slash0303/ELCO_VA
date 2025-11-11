@@ -1,0 +1,2 @@
+mic_index = 0
+camera_index = 0

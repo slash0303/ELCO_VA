@@ -13,6 +13,8 @@ from scipy.io.wavfile import write
 import global_constants as gc
 import common.time_utilies as time_util
 
+import keyboard
+
 from eaxtension import LogE
 
 SAV_WAV_DEBUGGING = True
@@ -26,15 +28,17 @@ def use_vad_based_recording(audio_stream_shm_name: str,
                             speech_data_shm_name: str,
                             speech_record_complete_flag: EventObject,
                             vad_stream_read_flag: EventObject,
-                            transcript_loading_complete_flag: EventObject,
                             trascript_processing_flag: EventObject,
                             llm_response_generating_flag: EventObject,
-                            tts_loading_complete_flag: EventObject,
-                            tts_generating_flag: EventObject):
+                            tts_generating_flag: EventObject,
+                            loading_complete_flag: EventObject,
+                            gazing_flag: EventObject,
+                            gaze_enable_flag: EventObject,
+                            convert_emoji_processing_flag: EventObject):
     
     wrt = 1
 
-    PROCESS_NAME = "[vad_based_recording]"
+    PROCESS_NAME = "[vad based recording]"
 
     LogE.g(PROCESS_NAME, "process is started")
     
@@ -69,14 +73,22 @@ def use_vad_based_recording(audio_stream_shm_name: str,
     # Speech data storing arrays.
     speech_raw = []
 
-    while (not transcript_loading_complete_flag.is_set()) or (not tts_loading_complete_flag.is_set()):
+    while not loading_complete_flag.is_set():
         pass
 
     LogE.g(PROCESS_NAME, "voice detection started.")
-    dot = 1
+    
+    speech_enabled_flag = False
+
     # Main loop
     while True:
-        if not (trascript_processing_flag.is_set() or llm_response_generating_flag.is_set() or tts_generating_flag.is_set()):
+        if not (trascript_processing_flag.is_set() or \
+                llm_response_generating_flag.is_set() or \
+                tts_generating_flag.is_set() or \
+                convert_emoji_processing_flag.is_set()):
+
+            # LogE.g(PROCESS_NAME, f"gaze: {gazing_flag.is_set()}")
+            gaze_enable_flag.set()
             # Get audio data from shared memory.
             audio_data_tensor = torch.from_numpy(audio_data_ndarr) 
 
@@ -85,7 +97,8 @@ def use_vad_based_recording(audio_stream_shm_name: str,
                                     gc.audio.SAMPLING_RATE).item()
 
             # Evaluate the probability
-            if speech_prob >= gc.vad.ACTIVATE_THRESHOLD:
+            if speech_prob >= gc.vad.ACTIVATE_THRESHOLD and (speech_enabled_flag or gazing_flag.is_set()) or keyboard.is_pressed("space"):
+                # LogE.d(PROCESS_NAME, f"{gazing_flag.is_set()} {speech_enabled_flag}")
                 # If voice was detected by the model
                 if detection_state.name == "deactivate":
                     # initialize the session
@@ -107,6 +120,7 @@ def use_vad_based_recording(audio_stream_shm_name: str,
                     speech_maintain_time.restart()
                 # If the probability is over threshold, should update the state to speech always.
                 detection_state = DetectionState.speech
+                speech_enabled_flag = True
             else:
                 # If the voice wasn't detected by the model
                 if speech_maintain_time.is_over():
@@ -123,13 +137,10 @@ def use_vad_based_recording(audio_stream_shm_name: str,
                         pass
                 else:
                     if detection_state.name == "speech":
-                        LogE.p("speech maintaining", speech_maintain_time.get_time(), gc.vad.MAINTAIN_LIMIT)
+                        LogE.p(f"speech maintaining {gazing_flag.is_set()}({gaze_enable_flag.is_set()})", speech_maintain_time.get_time(), gc.vad.MAINTAIN_LIMIT)
                     else:
-                        print(f"listening{'.' * (dot%3)}", end="\r")
-                        if dot <= 30:
-                            dot += 1
-                        else: 
-                            dot = 0
+                        print(f"listening... & Gazing: {gazing_flag.is_set()}({gaze_enable_flag.is_set()})", end="\r")
+                        pass
 
             # Capture speech frames and store in arrays.
             if detection_state.name != "deactivate" and (not vad_stream_read_flag.is_set()):
@@ -164,12 +175,15 @@ def use_vad_based_recording(audio_stream_shm_name: str,
                 
                 speech_record_complete_flag.set()
                 
-                if wrt == 1:
-                    wrt = 0
-                    np.save("./raw_vad.npy", speech_raw)
-                    np.save("./shm_vad.npy", speech_data_ndarr)
+                # if wrt == 1:
+                #     wrt = 0
+                #     np.save("./raw_vad.npy", speech_raw)
+                #     np.save("./shm_vad.npy", speech_data_ndarr)
                 
                 # Clear speech data array
                 speech_raw = []
+                speech_enabled_flag = False
+                gaze_enable_flag.clear()
+                LogE.d(PROCESS_NAME, "recording end.")
             else:
                 pass
